@@ -29,10 +29,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Making activity go fullscreen removing status bar
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
         // Grabbing new instance of FirebaseAuth
         firebaseAuth = FirebaseAuth.getInstance();
 
