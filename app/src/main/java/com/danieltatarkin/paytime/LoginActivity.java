@@ -11,8 +11,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.danieltatarkin.paytime.utilities.BiometricUtils;
+import com.danieltatarkin.paytime.utilities.NetworkUtils;
+import com.danieltatarkin.paytime.utilities.PayTimeConstants;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -31,7 +35,8 @@ import java.util.Objects;
 
 public class LoginActivity extends AppCompatActivity {
 
-    public static final String TAG = LoginActivity.class.getSimpleName();
+    //
+    public static final int USER_RETURNED_FROM_MAIN = 301;
 
     private TextInputLayout emailEditText;
     private TextInputLayout passwordEditText;
@@ -44,7 +49,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_login);
 
         // Creating Firebase instances
         firebaseAuth = FirebaseAuth.getInstance();
@@ -57,13 +62,16 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.password_editText);
         loginButton = findViewById(R.id.login_button);
         setViewListeners();
+
+        if (BiometricUtils.isSdkVersionSupported()) {
+            BiometricUtils.createFingerPrompt(this);
+        }
     }
 
     /**
      * This function takes text from Email/Password EditTexts.
      * - Checks if it's empty.
-     * - Logs user in if credentials are correct.
-     * - If correct, then calls updateDatabase() with current user's info.
+     * - Logs user in if credentials are correct, and updates database with user's info.
      */
     private void loginUser() {
         String email = emailEditText.getEditText().getText().toString();
@@ -75,7 +83,7 @@ public class LoginActivity extends AppCompatActivity {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
-                                updateDatabase(FirebaseAuth.getInstance().getCurrentUser());
+                                updateDatabase(task.getResult().getUser());
                                 Toast.makeText(LoginActivity.this, "Logged in!", Toast.LENGTH_SHORT).show();
                                 userLoggedIn();
                             } else {
@@ -91,7 +99,7 @@ public class LoginActivity extends AppCompatActivity {
     /**
      * This function updates Firestore db with provided user's information
      *
-     * @param firebaseUser
+     * @param firebaseUser - instance of a Firebase User from Firebase Auth
      */
     private void updateDatabase(@NonNull FirebaseUser firebaseUser) {
 
@@ -113,7 +121,7 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Toast.makeText(LoginActivity.this, "Something went wrong | DB", Toast.LENGTH_SHORT).show();
-                        Log.e(TAG, e.toString());
+                        Log.e(PayTimeConstants.TAG, e.toString());
                     }
                 });
 
@@ -139,14 +147,18 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loginUser();
+
+                if (NetworkUtils.checkNetworkConnection(getApplicationContext())) loginUser();
+                else
+                    Toast.makeText(LoginActivity.this, R.string.no_internet_error, Toast.LENGTH_SHORT).show();
+
             }
         });
     }
 
     private void userLoggedIn() {
         Intent goToMainActivity = new Intent(this, MainActivity.class);
-        startActivity(goToMainActivity);
+        startActivityForResult(goToMainActivity, USER_RETURNED_FROM_MAIN);
     }
 
     @Override
@@ -159,6 +171,13 @@ public class LoginActivity extends AppCompatActivity {
             updateDatabase(FirebaseAuth.getInstance().getCurrentUser());
             Toast.makeText(this, "Logged in already!", Toast.LENGTH_SHORT).show();
             userLoggedIn();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == USER_RETURNED_FROM_MAIN) {
+            firebaseAuth.signOut();
         }
     }
 }

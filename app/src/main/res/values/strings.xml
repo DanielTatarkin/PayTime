@@ -3,4 +3,13 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="use_fingerprint_scanner">Use Fingerprint Scanner</string>
+    <string name="forgot_password">Forgot Password</string>
+    <string name="sign_in">Sign In</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="password">Password</string>
+    <string name="email">Email</string>
+
+    <!-- ERROR MESSAGES: -->
+    <string name="no_internet_error">Network is unavailable</string>
 </resources>

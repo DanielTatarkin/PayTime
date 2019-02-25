@@ -11,4 +11,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pay_time);
     }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finishActivity(LoginActivity.USER_RETURNED_FROM_MAIN);
+    }
 }
