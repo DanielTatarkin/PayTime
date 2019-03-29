@@ -1,4 +1,4 @@
-package com.danieltatarkin.paytime;
+package com.danieltatarkin.paytime.activities.loginactivity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -7,6 +7,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,7 +15,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.danieltatarkin.paytime.R;
+import com.danieltatarkin.paytime.activities.MainActivity;
 import com.danieltatarkin.paytime.utilities.BiometricUtils;
+import com.danieltatarkin.paytime.utilities.FirebaseInstances;
 import com.danieltatarkin.paytime.utilities.NetworkUtils;
 import com.danieltatarkin.paytime.utilities.PayTimeConstants;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -22,50 +26,49 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivityView extends AppCompatActivity {
 
-    //
     public static final int USER_RETURNED_FROM_MAIN = 301;
 
     private TextInputLayout emailEditText;
     private TextInputLayout passwordEditText;
     private Button loginButton;
+    private Switch fpScannerSwitch;
 
-    private FirebaseAuth firebaseAuth;
-    private FirebaseFirestore db;
-    private FirebaseAnalytics firebaseAnalytics;
+    public static FirebaseInstances FbInstance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // Creating Firebase instances
-        firebaseAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        firebaseAnalytics = FirebaseAnalytics.getInstance(this);
-        firebaseAnalytics.setAnalyticsCollectionEnabled(true);
+        // Custom util class that holds Firebase Instances (Auth, DB, Analytics etc)
+        FbInstance = new FirebaseInstances(this);
 
         // Setting up Views
+        setupViews();
+
+        if (BiometricUtils.isSdkVersionSupported() && fpScannerSwitch.isChecked()) {
+            BiometricUtils.createFingerPrompt(this);
+        }
+    }
+
+    private void setupViews() {
         emailEditText = findViewById(R.id.email_editText);
         passwordEditText = findViewById(R.id.password_editText);
         loginButton = findViewById(R.id.login_button);
-        setViewListeners();
+        fpScannerSwitch = findViewById(R.id.fp_scanner_toggle);
 
-        if (BiometricUtils.isSdkVersionSupported()) {
-            BiometricUtils.createFingerPrompt(this);
-        }
+        setViewListeners();
     }
 
     /**
@@ -77,21 +80,26 @@ public class LoginActivity extends AppCompatActivity {
         String email = emailEditText.getEditText().getText().toString();
         String password = passwordEditText.getEditText().getText().toString();
 
+        // Checking if Email and Password fields are NOT empty
         if (!email.trim().isEmpty() && !password.trim().isEmpty()) {
-            firebaseAuth.signInWithEmailAndPassword(email, password)
+
+
+
+            FbInstance.getFirebaseAuth().signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
                                 updateDatabase(task.getResult().getUser());
-                                Toast.makeText(LoginActivity.this, "Logged in!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(LoginActivityView.this, "Logged in!", Toast.LENGTH_SHORT).show();
                                 userLoggedIn();
                             } else {
-                                Toast.makeText(LoginActivity.this, "Wrong user credentials", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(LoginActivityView.this, "Wrong user credentials", Toast.LENGTH_SHORT).show();
                             }
                         }
                     });
         } else {
+            // Else throws a toast warning
             Toast.makeText(this, "Email/Password field is empty", Toast.LENGTH_SHORT).show();
         }
     }
@@ -108,19 +116,19 @@ public class LoginActivity extends AppCompatActivity {
         userLoginInfo.put("UID", firebaseUser.getUid());
         userLoginInfo.put("Last Login", Calendar.getInstance().getTime());
 
-        db.collection("Users")
-                .document(firebaseAuth.getCurrentUser().getEmail())
+        FbInstance.getDb().collection("Users")
+                .document(FbInstance.getFirebaseAuth().getCurrentUser().getEmail())
                 .set(userLoginInfo)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Toast.makeText(LoginActivity.this, "DB updated with user's info", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivityView.this, "DB updated with user's info", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(LoginActivity.this, "Something went wrong | DB", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivityView.this, "Something went wrong | DB", Toast.LENGTH_SHORT).show();
                         Log.e(PayTimeConstants.TAG, e.toString());
                     }
                 });
@@ -136,6 +144,8 @@ public class LoginActivity extends AppCompatActivity {
         passwordEditText.getEditText().setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+
+                // If user presses 'Done' / 'Return' key on keyboard, proceed with login
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     loginUser();
                 }
@@ -150,7 +160,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 if (NetworkUtils.checkNetworkConnection(getApplicationContext())) loginUser();
                 else
-                    Toast.makeText(LoginActivity.this, R.string.no_internet_error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(LoginActivityView.this, R.string.no_internet_error, Toast.LENGTH_SHORT).show();
 
             }
         });
@@ -166,7 +176,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onStart();
 
         // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        FirebaseUser currentUser = FbInstance.getFirebaseAuth().getCurrentUser();
         if (currentUser != null) {
             updateDatabase(FirebaseAuth.getInstance().getCurrentUser());
             Toast.makeText(this, "Logged in already!", Toast.LENGTH_SHORT).show();
@@ -177,7 +187,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == USER_RETURNED_FROM_MAIN) {
-            firebaseAuth.signOut();
+            FbInstance.getFirebaseAuth().signOut();
         }
     }
 }

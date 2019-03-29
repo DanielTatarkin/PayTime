@@ -1,8 +1,11 @@
-package com.danieltatarkin.paytime;
+package com.danieltatarkin.paytime.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+
+import com.danieltatarkin.paytime.R;
+import com.danieltatarkin.paytime.activities.loginactivity.LoginActivityView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -15,6 +18,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        finishActivity(LoginActivity.USER_RETURNED_FROM_MAIN);
+        finishActivity(LoginActivityView.USER_RETURNED_FROM_MAIN);
     }
 }
