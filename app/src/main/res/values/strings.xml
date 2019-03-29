@@ -12,4 +12,5 @@
 
     <!-- ERROR MESSAGES: -->
     <string name="no_internet_error">Network is unavailable</string>
+    <string name="sign_out">Sign Out</string>
 </resources>

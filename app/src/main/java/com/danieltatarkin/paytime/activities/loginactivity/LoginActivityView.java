@@ -16,7 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.danieltatarkin.paytime.R;
-import com.danieltatarkin.paytime.activities.MainActivity;
+import com.danieltatarkin.paytime.activities.mainactivity.MainActivity;
 import com.danieltatarkin.paytime.utilities.BiometricUtils;
 import com.danieltatarkin.paytime.utilities.FirebaseInstances;
 import com.danieltatarkin.paytime.utilities.NetworkUtils;
@@ -33,7 +33,6 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class LoginActivityView extends AppCompatActivity {
 
@@ -62,6 +61,10 @@ public class LoginActivityView extends AppCompatActivity {
         }
     }
 
+
+    /**
+     * Simply sets up Views to their IDs and assigns listeners
+     */
     private void setupViews() {
         emailEditText = findViewById(R.id.email_editText);
         passwordEditText = findViewById(R.id.password_editText);
@@ -82,9 +85,6 @@ public class LoginActivityView extends AppCompatActivity {
 
         // Checking if Email and Password fields are NOT empty
         if (!email.trim().isEmpty() && !password.trim().isEmpty()) {
-
-
-
             FbInstance.getFirebaseAuth().signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
@@ -112,10 +112,11 @@ public class LoginActivityView extends AppCompatActivity {
     private void updateDatabase(@NonNull FirebaseUser firebaseUser) {
 
         Map<String, Object> userLoginInfo = new HashMap<>();
-        userLoginInfo.put("email", Objects.requireNonNull(firebaseUser.getEmail()));
+        userLoginInfo.put("email", firebaseUser.getEmail());
         userLoginInfo.put("UID", firebaseUser.getUid());
         userLoginInfo.put("Last Login", Calendar.getInstance().getTime());
 
+        // Each user is stored under 'Users' collection, where each unique email is a document
         FbInstance.getDb().collection("Users")
                 .document(FbInstance.getFirebaseAuth().getCurrentUser().getEmail())
                 .set(userLoginInfo)
@@ -132,7 +133,6 @@ public class LoginActivityView extends AppCompatActivity {
                         Log.e(PayTimeConstants.TAG, e.toString());
                     }
                 });
-
     }
 
     /**
